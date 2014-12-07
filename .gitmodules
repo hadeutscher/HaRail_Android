@@ -1,0 +1,3 @@
+[submodule "jni/HaRail"]
+	path = jni/HaRail
+	url = https://github.com/haha01haha01/HaRail
