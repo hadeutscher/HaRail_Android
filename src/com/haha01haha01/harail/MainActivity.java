@@ -142,7 +142,7 @@ public class MainActivity extends Activity {
         // Time and date
         Time today = new Time(Time.getCurrentTimezone());
         today.setToNow();
-        ((TextView)findViewById(R.id.timeInput)).setText(Integer.toString(today.hour) + Integer.toString(today.minute));
+        ((TextView)findViewById(R.id.timeInput)).setText(padWithZeroes(Integer.toString(today.hour), 2) + padWithZeroes(Integer.toString(today.minute), 2));
         ((TextView)findViewById(R.id.dateInput)).setText(padWithZeroes(Integer.toString(today.monthDay), 2) + padWithZeroes(Integer.toString(today.month + 1), 2) + Integer.toString(today.year).substring(2, 4));
         
         ((SearchView)findViewById(R.id.searchSourceStation)).setQuery("", false);
