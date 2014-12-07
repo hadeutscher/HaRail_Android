@@ -2,16 +2,164 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.haha01haha01.harail.MainActivity" >
 
-    <TextView
-        android:id="@+id/text"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/hello_world" />
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical" >
+
+        <TableRow
+            android:id="@+id/stationInputsRow"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" >
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" >
+
+                <LinearLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical" >
+
+                    <SearchView
+                        android:id="@+id/searchSourceStation"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:iconifiedByDefault="false" >
+
+                    </SearchView>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical" >
+
+                    <SearchView
+                        android:id="@+id/searchDestStation"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:iconifiedByDefault="false" >
+
+                    </SearchView>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </TableRow>
+
+        <ListView
+            android:id="@+id/stationsList"
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" >
+
+        </ListView>
+
+        <TableRow
+            android:id="@+id/timeInputRow"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" >
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical" >
+
+	            <TextView
+	                android:id="@+id/timeLabel"
+	                android:layout_width="wrap_content"
+	                android:layout_height="wrap_content"
+	                android:labelFor="@+id/timeInput"
+	                android:text="@string/time_label_text" />
+	
+	            <EditText
+	                android:id="@+id/timeInput"
+	                android:layout_width="wrap_content"
+	                android:layout_height="wrap_content"
+	                android:ems="10"
+	                android:inputType="time" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical" >
+
+				<TextView
+	                android:id="@+id/dateLabel"
+	                android:layout_width="wrap_content"
+	                android:layout_height="wrap_content"
+	                android:labelFor="@+id/dateInput"
+	                android:text="@string/date_label_text" />
+	
+	            <EditText
+	                android:id="@+id/dateInput"
+	                android:layout_width="wrap_content"
+	                android:layout_height="wrap_content"
+	                android:ems="10"
+	                android:inputType="date" />
+
+            </LinearLayout>
+
+        </TableRow>
+
+        <TextView
+            android:id="@+id/selectedStationsView"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/empty_string" />
+
+        <TableRow
+            android:id="@+id/buttonRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+
+            <Button
+                android:id="@+id/mainButton"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:enabled="false"
+                android:text="@string/button_text"
+                android:onClick="performSearch" />
+
+        </TableRow>
+
+        <TableRow
+            android:id="@+id/outputRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+
+            <ScrollView
+                android:id="@+id/outputScrollView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" >
+
+                <TextView
+                    android:id="@+id/outputText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/empty_string"
+                    android:textSize="16sp" />
+
+            </ScrollView>
+
+        </TableRow>
+
+    </LinearLayout>
 
 </RelativeLayout>
