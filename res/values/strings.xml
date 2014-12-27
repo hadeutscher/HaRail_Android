@@ -8,5 +8,10 @@
     <string name="time_label_text">Time:</string>
     <string name="empty_string"></string>
     <string name="date_label_text">Date:</string>
+    <string name="download_db">Download DB</string>
+    <string name="source_query">Source</string>
+    <string name="dest_query">Dest</string>
+    <string name="title_activity_display_route">DisplayRouteActivity</string>
+    <string name="action_settings">Settings</string>
 
 </resources>
