@@ -44,6 +44,22 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.haha01haha01.harail.MainActivity" />
         </activity>
+        <activity
+            android:name=".routeListActivity"
+            android:label="@string/title_route_list"
+            android:parentActivityName=".MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.haha01haha01.harail.MainActivity" />
+        </activity>
+        <activity
+            android:name=".routeDetailActivity"
+            android:label="@string/title_route_detail"
+            android:parentActivityName=".routeListActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.haha01haha01.harail.routeListActivity" />
+        </activity>
     </application>
 
 </manifest>

@@ -25,7 +25,9 @@ import java.io.IOException;
 import android.os.Environment;
 import android.text.format.Time;
 
-public class Utils {
+public final class Utils {
+	public static final String data_root = new File(Environment.getExternalStorageDirectory(), "irw_gtfs").getAbsolutePath() + "/";
+	
 	public static void readStationList(MainActivity context) throws FileNotFoundException
 	{
 		File sdcard = Environment.getExternalStorageDirectory();

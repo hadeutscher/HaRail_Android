@@ -218,9 +218,21 @@ public class MainActivity extends Activity {
 			Toast.makeText(getApplicationContext(), "Error!", Toast.LENGTH_LONG).show();
 			return;
 		}
-		String result = mainHaRail(date, curr_source, time, curr_dest);
-		//tv.setText(result);
-		Intent intent = new Intent(this, DisplayRouteActivity.class);
+		
+		if (!HaRailAPI.loadData(date, time, Utils.data_root)) {
+			Toast.makeText(getApplicationContext(), HaRailAPI.getLastError(), Toast.LENGTH_LONG).show();
+			return;
+		}
+		
+		int[] result = HaRailAPI.getRoutes(time, curr_source, curr_dest);
+		/*String debug = "";
+		for (int i : result) {
+			debug += Integer.toString(i) + " ";
+		}
+		debug += HaRailAPI.getRoutesStr(time, curr_source, curr_dest);
+		
+		Intent intent = new Intent(this, DisplayRouteActivity.class);*/
+		Intent intent = new Intent(this, routeListActivity.class);
 	    intent.putExtra(EXTRA_DATA, result);
 	    startActivity(intent);
 	}
@@ -307,14 +319,5 @@ public class MainActivity extends Activity {
 		Intent mServiceIntent = new Intent(getApplicationContext(),
 				DatabaseDownloader.class);
 		startService(mServiceIntent);
-	}
-
-	// Native Calls
-
-	public native String mainHaRail(int date, int source_station, int time,
-			int dest_station);
-
-	static {
-		System.loadLibrary("HaRail");
 	}
 }
