@@ -1,13 +1,14 @@
 package com.haha01haha01.harail;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.app.ListFragment;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
-import com.haha01haha01.harail.dummy.DummyContent;
 
 /**
  * A list fragment representing a list of Trains. This fragment also supports
@@ -25,6 +26,8 @@ public class routeListFragment extends ListFragment {
 	 * activated item position. Only used on tablets.
 	 */
 	private static final String STATE_ACTIVATED_POSITION = "activated_position";
+	
+	private static final String STATE_ENCODED_DATA = "encoded_data";
 
 	/**
 	 * The fragment's current callback object, which is notified of list item
@@ -38,6 +41,16 @@ public class routeListFragment extends ListFragment {
 	private int mActivatedPosition = ListView.INVALID_POSITION;
 
 	/**
+	 * The encoded data passed from routeListActivity
+	 */
+	private int[] mEncodedData;
+
+	/**
+	 * The list of entries
+	 */
+	List<TrainEntry> mItems;
+
+	/**
 	 * A callback interface that all activities containing this fragment must
 	 * implement. This mechanism allows activities to be notified of item
 	 * selections.
@@ -46,7 +59,7 @@ public class routeListFragment extends ListFragment {
 		/**
 		 * Callback for when an item has been selected.
 		 */
-		public void onItemSelected(String id);
+		public void onItemSelected(int id);
 	}
 
 	/**
@@ -55,7 +68,7 @@ public class routeListFragment extends ListFragment {
 	 */
 	private static Callbacks sDummyCallbacks = new Callbacks() {
 		@Override
-		public void onItemSelected(String id) {
+		public void onItemSelected(int id) {
 		}
 	};
 
@@ -70,15 +83,64 @@ public class routeListFragment extends ListFragment {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		// TODO: replace with a real list adapter.
-		setListAdapter(new ArrayAdapter<DummyContent.DummyItem>(getActivity(),
+		if (savedInstanceState != null
+				&& savedInstanceState.containsKey(STATE_ENCODED_DATA)) {
+			mEncodedData = savedInstanceState.getIntArray(STATE_ENCODED_DATA);
+		}
+		
+		decodeData();
+
+		setListAdapter(new ArrayAdapter<TrainEntry>(getActivity(),
 				android.R.layout.simple_list_item_activated_1,
-				android.R.id.text1, DummyContent.ITEMS));
+				android.R.id.text1, mItems));
+	}
+
+	private String makeRoute(int source_id, int source_time, int dest_id,
+			int dest_time) {
+		return Utils.stationsById.get(source_id) + " ("
+				+ Utils.makeTime(source_time) + ") -> "
+				+ Utils.stationsById.get(dest_id) + " ("
+				+ Utils.makeTime(dest_time) + ")";
+	}
+
+	private int appendRouteToList(int i) {
+		int train_count = mEncodedData[i++];
+		for (int j = 0; j < train_count; j++) {
+			int train_id = mEncodedData[i++];
+			int source_id = mEncodedData[i++];
+			int source_time = mEncodedData[i++];
+			int dest_id = mEncodedData[i++];
+			int dest_time = mEncodedData[i++];
+			mItems.add(new TrainEntry(train_id, makeRoute(source_id, source_time, dest_id, dest_time)));
+		}
+		return i;
+	}
+
+	private void decodeData() {
+		mItems = new ArrayList<TrainEntry>();
+
+		int i = 0;
+
+		switch (mEncodedData[i++]) {
+		case 0:
+			// Error
+			mItems.add(new TrainEntry(-1, HaRailAPI.getLastError()));
+			break;
+		case 2:
+			// 2 Routes
+			mItems.add(new TrainEntry(-1, "Least train switches:"));
+			i = appendRouteToList(i);
+			mItems.add(new TrainEntry(-1, "Latest leaving time:"));
+		case 1:
+			// 1 Route
+			i = appendRouteToList(i);
+			break;
+		}
 	}
 
 	@Override
 	public void onViewCreated(View view, Bundle savedInstanceState) {
-		super.onViewCreated(view, savedInstanceState);
+ 		super.onViewCreated(view, savedInstanceState);
 
 		// Restore the previously serialized activated item position.
 		if (savedInstanceState != null
@@ -99,6 +161,9 @@ public class routeListFragment extends ListFragment {
 		}
 
 		mCallbacks = (Callbacks) activity;
+
+		mEncodedData = activity.getIntent().getIntArrayExtra(
+				routeListActivity.EXTRA_DATA);
 	}
 
 	@Override
@@ -116,12 +181,16 @@ public class routeListFragment extends ListFragment {
 
 		// Notify the active callbacks interface (the activity, if the
 		// fragment is attached to one) that an item has been selected.
-		mCallbacks.onItemSelected(DummyContent.ITEMS.get(position).id);
+		int item_id = mItems.get(position).id;
+		if (item_id >= 0) {
+			mCallbacks.onItemSelected(item_id);
+		}
 	}
 
 	@Override
 	public void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
+		outState.putIntArray(STATE_ENCODED_DATA, mEncodedData);
 		if (mActivatedPosition != ListView.INVALID_POSITION) {
 			// Serialize and persist the activated item position.
 			outState.putInt(STATE_ACTIVATED_POSITION, mActivatedPosition);

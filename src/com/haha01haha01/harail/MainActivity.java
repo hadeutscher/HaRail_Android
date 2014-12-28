@@ -16,9 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 package com.haha01haha01.harail;
 
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.locks.Lock;
@@ -45,18 +43,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-	List<String> all_stations_list = new ArrayList<String>();
-	Hashtable<Integer, String> stationsById = new Hashtable<Integer, String>();
-	Hashtable<String, Integer> stationsByName = new Hashtable<String, Integer>();
 	boolean source_searching = false;
 	boolean dest_searching = false;
+	boolean classic_mode = false;
 	int curr_source = -1;
 	int curr_dest = -1;
 
 	Lock download_mutex = new ReentrantLock();
 	long download_id = 0;
-	
-	public static final String EXTRA_DATA = "com.haha01haha01.harail.EXTRA_DATA";
 
 	// Class methods
 
@@ -93,6 +87,9 @@ public class MainActivity extends Activity {
 		} else if (id == R.id.action_download) {
 			downloadDb();
 			return true;
+		} else if (id == R.id.action_set_legacy) {
+			classic_mode = !classic_mode;
+			item.setChecked(classic_mode);
 		}
 		return super.onOptionsItemSelected(item);
 	}
@@ -108,9 +105,7 @@ public class MainActivity extends Activity {
 
 	private void initializeComponents() {
 		// Initialize station list and search box
-		try {
-			Utils.readStationList(this);
-		} catch (FileNotFoundException ex) {
+		if (!Utils.stationsInitialized) {
 			fail("Could not read GTFS database, try downloading it via the Menu");
 			return;
 		}
@@ -168,7 +163,7 @@ public class MainActivity extends Activity {
 				long arg3) {
 			ListView lv = (ListView) findViewById(R.id.stationsList);
 			String item = (String) lv.getItemAtPosition(position);
-			int station = (int) stationsByName.get(item);
+			int station = Utils.stationsByName.get(item);
 			if (source_searching) {
 				curr_source = station;
 				((MirageEditText)findViewById(R.id.searchSourceStation)).setMirageText(item);
@@ -197,6 +192,7 @@ public class MainActivity extends Activity {
 						Toast.LENGTH_LONG).show();
 			}
 			unfail();
+			Utils.readStationList();
 			initializeComponents();
 		}
 	}
@@ -224,16 +220,17 @@ public class MainActivity extends Activity {
 			return;
 		}
 		
-		int[] result = HaRailAPI.getRoutes(time, curr_source, curr_dest);
-		/*String debug = "";
-		for (int i : result) {
-			debug += Integer.toString(i) + " ";
-		}
-		debug += HaRailAPI.getRoutesStr(time, curr_source, curr_dest);
+		Intent intent;
 		
-		Intent intent = new Intent(this, DisplayRouteActivity.class);*/
-		Intent intent = new Intent(this, routeListActivity.class);
-	    intent.putExtra(EXTRA_DATA, result);
+		if (classic_mode) {
+			String result = HaRailAPI.getRoutesStr(time, curr_source, curr_dest);	
+			intent = new Intent(this, DisplayRouteActivity.class);
+			intent.putExtra(DisplayRouteActivity.EXTRA_DATA, result);
+		} else {
+			int[] result = HaRailAPI.getRoutes(time, curr_source, curr_dest);
+			intent = new Intent(this, routeListActivity.class);
+		    intent.putExtra(routeListActivity.EXTRA_DATA, result);
+		}
 	    startActivity(intent);
 	}
 
@@ -266,6 +263,8 @@ public class MainActivity extends Activity {
 		
 		((MirageEditText)findViewById(R.id.searchSourceStation)).setRealText("");
 		((MirageEditText)findViewById(R.id.searchDestStation)).setRealText("");
+		((MirageEditText)findViewById(R.id.searchSourceStation)).setMirageText("Source");
+		((MirageEditText)findViewById(R.id.searchDestStation)).setMirageText("Dest");
 		((MirageEditText)findViewById(R.id.searchSourceStation)).requestFocus();
 		
 		listStationsWithSearch("");
@@ -293,9 +292,9 @@ public class MainActivity extends Activity {
 	private void listStationsWithSearch(String data) {
 		List<String> result = new ArrayList<String>();
 		if (data == "") {
-			setListViewItems(all_stations_list);
+			setListViewItems(Utils.allStationsList);
 		} else {
-			for (String station : all_stations_list) {
+			for (String station : Utils.allStationsList) {
 				if (station.toLowerCase(Locale.ENGLISH).contains(
 						data.toLowerCase(Locale.ENGLISH))) {
 					result.add(station);

@@ -3,7 +3,6 @@ package com.haha01haha01.harail;
 import android.content.Intent;
 import android.os.Bundle;
 import android.app.Activity;
-import android.support.v4.app.NavUtils;
 import android.view.MenuItem;
 
 /**
@@ -29,10 +28,13 @@ public class routeListActivity extends Activity implements
 	 * device.
 	 */
 	private boolean mTwoPane;
+	
+	public static final String EXTRA_DATA = "com.haha01haha01.harail.EXTRA_DATA";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
 		setContentView(R.layout.activity_route_list);
 		// Show the Up button in the action bar.
 		getActionBar().setDisplayHomeAsUpEnabled(true);
@@ -49,8 +51,6 @@ public class routeListActivity extends Activity implements
 			((routeListFragment) getFragmentManager().findFragmentById(
 					R.id.route_list)).setActivateOnItemClick(true);
 		}
-
-		// TODO: If exposing deep links into your app, handle intents here.
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public class routeListActivity extends Activity implements
 			//
 			// http://developer.android.com/design/patterns/navigation.html#up-vs-back
 			//
-			NavUtils.navigateUpFromSameTask(this);
+			finish();
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
@@ -75,13 +75,13 @@ public class routeListActivity extends Activity implements
 	 * the item with the given ID was selected.
 	 */
 	@Override
-	public void onItemSelected(String id) {
+	public void onItemSelected(int id) {
 		if (mTwoPane) {
 			// In two-pane mode, show the detail view in this activity by
 			// adding or replacing the detail fragment using a
 			// fragment transaction.
 			Bundle arguments = new Bundle();
-			arguments.putString(routeDetailFragment.ARG_ITEM_ID, id);
+			arguments.putInt(routeDetailFragment.ARG_ITEM_ID, id);
 			routeDetailFragment fragment = new routeDetailFragment();
 			fragment.setArguments(arguments);
 			getFragmentManager().beginTransaction()

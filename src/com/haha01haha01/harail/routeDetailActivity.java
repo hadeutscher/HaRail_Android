@@ -1,9 +1,7 @@
 package com.haha01haha01.harail;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.app.Activity;
-
 import android.view.MenuItem;
 
 /**
@@ -37,8 +35,8 @@ public class routeDetailActivity extends Activity {
 			// Create the detail fragment and add it to the activity
 			// using a fragment transaction.
 			Bundle arguments = new Bundle();
-			arguments.putString(routeDetailFragment.ARG_ITEM_ID, getIntent()
-					.getStringExtra(routeDetailFragment.ARG_ITEM_ID));
+			arguments.putInt(routeDetailFragment.ARG_ITEM_ID, getIntent()
+					.getIntExtra(routeDetailFragment.ARG_ITEM_ID, -1));
 			routeDetailFragment fragment = new routeDetailFragment();
 			fragment.setArguments(arguments);
 			getFragmentManager().beginTransaction()
@@ -56,7 +54,7 @@ public class routeDetailActivity extends Activity {
 			//
 			// http://developer.android.com/design/patterns/navigation.html#up-vs-back
 			//
-			navigateUpTo(new Intent(this, routeListActivity.class));
+			finish();
 			return true;
 		}
 		return super.onOptionsItemSelected(item);

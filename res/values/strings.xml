@@ -15,5 +15,6 @@
     <string name="action_settings">Settings</string>
     <string name="title_route_list">Trains</string>
     <string name="title_route_detail">route Detail</string>
+    <string name="classic_menu_item">Classic Mode</string>
 
 </resources>
