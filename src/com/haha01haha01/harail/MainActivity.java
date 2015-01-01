@@ -228,6 +228,10 @@ public class MainActivity extends Activity {
 			intent.putExtra(DisplayRouteActivity.EXTRA_DATA, result);
 		} else {
 			int[] result = HaRailAPI.getRoutes(time, curr_source, curr_dest);
+			if (result[0] == 0) {
+				Toast.makeText(getApplicationContext(), HaRailAPI.getLastError(), Toast.LENGTH_LONG).show();
+				return;
+			}
 			intent = new Intent(this, routeListActivity.class);
 		    intent.putExtra(routeListActivity.EXTRA_DATA, result);
 		}

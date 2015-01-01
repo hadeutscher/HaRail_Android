@@ -44,7 +44,7 @@ public class routeDetailFragment extends Fragment {
 	 * The train this fragment is presenting.
 	 */
 	private int mTrainId;
-	
+
 	private Activity parent;
 
 	/**
@@ -57,7 +57,7 @@ public class routeDetailFragment extends Fragment {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+
 		if (getArguments().containsKey(ARG_ITEM_ID)) {
 			mTrainId = getArguments().getInt(ARG_ITEM_ID);
 			parent.setTitle("Train #" + Integer.toString(mTrainId));
@@ -67,10 +67,10 @@ public class routeDetailFragment extends Fragment {
 	@Override
 	public void onAttach(Activity activity) {
 		super.onAttach(activity);
-		
+
 		parent = activity;
 	}
-	
+
 	private List<String> decodeData(int[] path) {
 		List<String> result = new ArrayList<String>();
 		int i = 0;
@@ -80,11 +80,12 @@ public class routeDetailFragment extends Fragment {
 			break;
 		case 1:
 			int train_count = path[i++];
+			int last_dest_id = -1;
 			int last_dest_time = -1;
 			for (int j = 0; j < train_count; j++) {
 				int source_id = path[i++];
 				int source_time = path[i++];
-				i++; //int dest_id = path[i++]; // Unused variable
+				int dest_id = path[i++];
 				int dest_time = path[i++];
 				if (last_dest_time == -1 || last_dest_time == source_time) {
 					result.add(Utils.stationsById.get(source_id) + " ("
@@ -94,8 +95,11 @@ public class routeDetailFragment extends Fragment {
 							+ Utils.makeTime(last_dest_time) + " - "
 							+ Utils.makeTime(source_time) + ")");
 				}
+				last_dest_id = dest_id;
 				last_dest_time = dest_time;
 			}
+			result.add(Utils.stationsById.get(last_dest_id) + " ("
+					+ Utils.makeTime(last_dest_time) + ")");
 			break;
 		}
 		return result;
