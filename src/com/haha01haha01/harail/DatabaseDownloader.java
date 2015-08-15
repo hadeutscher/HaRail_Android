@@ -37,7 +37,7 @@ public class DatabaseDownloader extends IntentService {
 	private static final String NAME = "HARAIL_DATABASE_DOWNLOADER";
 	private static final String irw_gtfs_server = "gtfs.mot.gov.il";
 	private static final int irw_gtfs_port = 21;
-	private static final String irw_gtfs_filename = "irw_gtfs.zip";
+	private static final String irw_gtfs_filename = "israel-public-transportation.zip";
 
 	public DatabaseDownloader() {
 		super(NAME);

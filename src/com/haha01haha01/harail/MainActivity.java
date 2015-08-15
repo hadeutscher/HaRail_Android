@@ -75,7 +75,10 @@ public class MainActivity extends Activity {
 			}
 			return true;
 		} else if (id == R.id.action_download) {
-			downloadDb();
+			Toast.makeText(getApplicationContext(),
+					"DB download not implemented yet, download it manually",
+					Toast.LENGTH_LONG).show();
+			//downloadDb();
 			return true;
 		} else if (id == R.id.action_set_legacy) {
 			classic_mode = !classic_mode;
@@ -285,7 +288,7 @@ public class MainActivity extends Activity {
 
 	private void listStationsWithSearch(String data) {
 		List<String> result = new ArrayList<String>();
-		if (data == "") {
+		if (data.equals("")) {
 			setListViewItems(Utils.allStationsList);
 		} else {
 			for (String station : Utils.allStationsList) {

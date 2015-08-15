@@ -12,15 +12,16 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.Hashtable;
 import java.util.List;
 
 import android.os.Environment;
-import android.text.format.Time;
 
 public final class Utils {
 	public static final String data_root = new File(
-			Environment.getExternalStorageDirectory(), "irw_gtfs")
+			Environment.getExternalStorageDirectory(), "irw_gtfs2")
 			.getAbsolutePath()
 			+ "/";
 
@@ -47,22 +48,33 @@ public final class Utils {
 		}
 	}
 
+	private static int getHeaderIndex(String[] headers, String header) throws NoSuchFieldException
+	{
+		for (int i = 0; i < headers.length; i++) {
+			if (headers[i].equals(header)) {
+				return i;
+			}
+		}
+		throw new NoSuchFieldException();
+	}
+	
 	public static void readStationList() {
 		stationsInitialized = false;
 		allStationsList = new ArrayList<String>();
 		stationsById = new Hashtable<Integer, String>();
 		stationsByName = new Hashtable<String, Integer>();
 		try {
-			File sdcard = Environment.getExternalStorageDirectory();
-			File file = new File(sdcard, "irw_gtfs/stops.txt");
+			File file = new File(data_root, "stops.txt");
 			BufferedReader br;
 			br = new BufferedReader(new FileReader(file));
 			String line;
-			br.readLine();
+			String[] headers = br.readLine().split(",");
+			int stat_id_idx = getHeaderIndex(headers, "stop_id");
+			int stat_name_idx = getHeaderIndex(headers, "stop_name");
 			while ((line = br.readLine()) != null) {
 				String[] params = line.split(",");
-				int stat_id = Integer.parseInt(params[0]);
-				String stat_name = params[1];
+				int stat_id = Integer.parseInt(params[stat_id_idx]);
+				String stat_name = params[stat_name_idx];
 				stationsByName.put(stat_name, stat_id);
 				stationsById.put(stat_id, stat_name);
 				allStationsList.add(stat_name);
@@ -71,22 +83,21 @@ public final class Utils {
 			stationsInitialized = true;
 		} catch (FileNotFoundException ex) {
 		} catch (IOException ex) {
+		} catch (NoSuchFieldException ex) {
 		}
 	}
 
 	public static String getCurrentTimeString() {
-		Time today = new Time(Time.getCurrentTimezone());
-		today.setToNow();
-		return padWithZeroes(Integer.toString(today.hour), 2)
-				+ padWithZeroes(Integer.toString(today.minute), 2);
+		Calendar cal = new GregorianCalendar();
+		return padWithZeroes(Integer.toString(cal.get(Calendar.HOUR_OF_DAY)), 2)
+				+ padWithZeroes(Integer.toString(cal.get(Calendar.MINUTE)), 2);
 	}
 
 	public static String getCurrentDateString() {
-		Time today = new Time(Time.getCurrentTimezone());
-		today.setToNow();
-		return padWithZeroes(Integer.toString(today.monthDay), 2)
-				+ padWithZeroes(Integer.toString(today.month + 1), 2)
-				+ Integer.toString(today.year).substring(2, 4);
+		Calendar cal = new GregorianCalendar();
+		return padWithZeroes(Integer.toString(cal.get(Calendar.DAY_OF_MONTH)), 2)
+				+ padWithZeroes(Integer.toString(cal.get(Calendar.MONTH) + 1), 2)
+				+ Integer.toString(cal.get(Calendar.YEAR)).substring(2, 4);
 	}
 
 	public static String padWithZeroes(String x, int n) {
