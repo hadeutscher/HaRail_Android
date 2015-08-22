@@ -6,16 +6,19 @@
 
 package com.haha01haha01.harail;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.zip.ZipFile;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -32,60 +35,69 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 public class DatabaseDownloader extends IntentService {
+	// Constants
 	public static final String FINISHED = "com.haha01haha01.harail.DatabaseDownloader.FINISHED";
 	public static final String EXTENDED_SUCCESS = "com.haha01haha01.harail.DatabaseDownloader.EXTENDED_SUCCESS";
 	private static final String NAME = "HARAIL_DATABASE_DOWNLOADER";
 	private static final String irw_gtfs_server = "gtfs.mot.gov.il";
 	private static final int irw_gtfs_port = 21;
-	private static final String irw_gtfs_filename = "irw_gtfs.zip";
-
+	private static final String irw_gtfs_filename = "israel-public-transportation.zip";
+	private static final String newLine = "\r\n";
+	private static final String outDir = "irw_gtfs2";
+	
+	// Private fields
+	private NotificationManager notifyManager = null;
+	private Notification.Builder builder = null;
+	private File zipFileLocal = new File(new File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOWNLOADS), irw_gtfs_filename);
+	private File irwFolder = new File(Environment.getExternalStorageDirectory(), outDir);
+	private Pattern splitter = Pattern.compile(",");
+	
 	public DatabaseDownloader() {
 		super(NAME);
+	}
+	
+	private void setStatus(String message, int icon, int max, int progress, boolean intermediate) {
+		if (builder != null && notifyManager != null) {
+			builder.setContentTitle("HaRail GTFS Database")
+					.setContentText(message)
+					.setSmallIcon(icon)
+					.setProgress(max, progress, intermediate);
+			notifyManager.notify(1, builder.build());			
+		}
 	}
 
 	@Override
 	protected void onHandleIntent(Intent workIntent) {
 		PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-		WakeLock wakeLock = powerManager.newWakeLock(
-				PowerManager.PARTIAL_WAKE_LOCK, NAME);
-
-		NotificationManager notifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-		Notification.Builder builder = new Notification.Builder(this);
-		builder.setContentTitle("HaRail GTFS Database")
-				.setContentText("Downloading file")
-				.setSmallIcon(android.R.drawable.ic_popup_sync)
-				.setProgress(0, 0, true);
-		notifyManager.notify(1, builder.build());
-
+		WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, NAME);
+		notifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+		builder = new Notification.Builder(this);
 		wakeLock.acquire();
 		try {
-			String filename = "harail_irw_gtfs_" + Utils.getCurrentDateString()
-					+ ".zip";
-			File zip_file = new File(new File(
-					Environment.getExternalStorageDirectory(),
-					Environment.DIRECTORY_DOWNLOADS), filename);
-			if (downloadFile(irw_gtfs_server, irw_gtfs_port, "anonymous", "",
-					irw_gtfs_filename, zip_file)) {
-				sendFinished(extractDb(zip_file, notifyManager, builder));
-			} else {
+			setStatus("Downloading...", android.R.drawable.stat_sys_download, 0, 0, true);
+			boolean success = downloadFile(irw_gtfs_server, irw_gtfs_port, "anonymous", "", irw_gtfs_filename, zipFileLocal);
+			if (!success) {
+				setStatus("Download Failed", android.R.drawable.ic_dialog_alert, 0, 0, false);
 				sendFinished(false);
+				return;
 			}
-			wakeLock.release();
-		} catch (IOException e) {
-			sendFinished(false);
-			builder.setContentText("Download failed")
-					.setSmallIcon(android.R.drawable.ic_dialog_alert)
-					.setProgress(0, 0, false);
-			notifyManager.notify(1, builder.build());
+			setStatus("Extracting...", android.R.drawable.stat_sys_download, 0, 0, true);
+			success = extractDb();
+			if (!success) {
+				setStatus("Extract Failed", android.R.drawable.ic_dialog_alert, 0, 0, false);
+				sendFinished(false);
+				return;
+			}
+			setStatus("Finished", android.R.drawable.stat_sys_download_done, 0, 0, false);
+			sendFinished(true);
+		} finally {
 			wakeLock.release();
 		}
 	}
-
-	private Boolean downloadFile(String server, int portNumber, String user,
-			String password, String filename, File localFile)
-			throws IOException {
+	
+	private boolean downloadFile(String server, int portNumber, String user,
+			String password, String filename, File localFile) {
 		FTPClient ftp = null;
-
 		try {
 			ftp = new FTPClient();
 			ftp.setBufferSize(1024 * 1024);
@@ -100,95 +112,249 @@ public class DatabaseDownloader extends IntentService {
 			}
 			Log.d(NAME, "Downloading");
 			ftp.enterLocalPassiveMode();
-
-			OutputStream outputStream = null;
-			boolean success = false;
-			try {
-				outputStream = new BufferedOutputStream(new FileOutputStream(
-						localFile));
-				success = ftp.retrieveFile(filename, outputStream);
-			} finally {
-				if (outputStream != null) {
-					outputStream.close();
-				}
-			}
-
-			return success;
+			
+			try (BufferedOutputStream outputStream = new BufferedOutputStream(
+					new FileOutputStream(localFile))) {
+				return ftp.retrieveFile(filename, outputStream);
+			} 
+		} catch (IOException e) {
+			return false;
 		} finally {
 			if (ftp != null) {
-				ftp.logout();
-				ftp.disconnect();
+				try {
+					ftp.logout();
+					ftp.disconnect();
+				} catch (IOException e) {
+					// Not even gonna return false, since we already finished downloading 
+				}
 			}
 		}
 	}
 
-	private boolean extractDb(File zip_path, NotificationManager notifyManager,
-			Notification.Builder builder) {
-		builder.setContentText("Unzipping...");
-		notifyManager.notify(1, builder.build());
-		File irw_folder = new File(Environment.getExternalStorageDirectory(),
-				"irw_gtfs");
-		if (irw_folder.exists()) {
-			if (irw_folder.isDirectory()) {
-				for (String file : irw_folder.list()) {
-					new File(irw_folder, file).delete();
+	private boolean extractDb() {
+		if (irwFolder.exists()) {
+			if (irwFolder.isDirectory()) {
+				for (String file : irwFolder.list()) {
+					new File(irwFolder, file).delete();
 				}
 			} else {
-				irw_folder.delete();
+				irwFolder.delete();
 			}
 		}
-		if (!irw_folder.exists()) {
-			if (!irw_folder.mkdir()) {
-				builder.setContentText("Makedir failed")
-						.setSmallIcon(android.R.drawable.ic_dialog_alert)
-						.setProgress(0, 0, false);
-				notifyManager.notify(1, builder.build());
-				return false;
-			}
+		if (!irwFolder.exists() && !irwFolder.mkdir()) {
+			return false;
 		}
-		unpackZip(irw_folder, zip_path);
-		builder.setContentText("Finished").setProgress(0, 0, false)
-				.setSmallIcon(android.R.drawable.ic_dialog_info);
-		notifyManager.notify(1, builder.build());
-		return true;
+		return unpackZip(irwFolder, zipFileLocal);
+	}
+	
+	private BufferedReader getFile(ZipFile zf, String name) throws IOException {
+		return new BufferedReader(new InputStreamReader(zf.getInputStream(zf.getEntry(name))));
+	}
+	
+	private String[] splitLine(String line) {
+		return splitter.split(line);
+	}
+	
+	private Map<String, Integer> parseGTFSHeaders(BufferedReader file) throws IOException{
+		return parseGTFSHeaders(file, null);
+	}
+	
+	private void writeLine(BufferedWriter file, String data) throws IOException {
+		file.write(data);
+		file.write(newLine);
+	}
+	
+	private Map<String, Integer> parseGTFSHeaders(BufferedReader ifile, BufferedWriter ofile) throws IOException{
+		HashMap<String, Integer> result = new HashMap<String, Integer>();
+		String line = ifile.readLine();
+		if (ofile != null) {
+			writeLine(ofile, line);
+		}
+		String[] headers = splitLine(line);
+		for (int i = 0; i < headers.length; i++) {
+			result.put(headers[i], i);
+		}
+		return result;
+	}
+	
+	private BufferedWriter setFile(File output_dir, String name) throws IOException {
+		return new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(output_dir, name))));
+	}
+	
+	private String parseAgency(ZipFile zf) {
+		try (BufferedReader file = getFile(zf, "agency.txt")) {
+			Map<String, Integer> headers = parseGTFSHeaders(file);
+			int agency_id_idx = headers.get("agency_id");
+			int agency_name_idx = headers.get("agency_name");
+			String line;
+			String[] args;
+			while ((line = file.readLine()) != null) {
+				args = splitLine(line);
+				if (args[agency_name_idx].equals("רכבת ישראל")) {
+					return args[agency_id_idx];
+				}
+			}
+		} catch (Exception e) {
+		}
+		return null;
+	}
+	
+	private HashSet<String> parseRoutes(ZipFile zf, String irw_agency_id) {
+		HashSet<String> irw_routes = new HashSet<String>();
+		try (BufferedReader file = getFile(zf, "routes.txt")) {
+			Map<String, Integer> headers = parseGTFSHeaders(file);
+			int route_id_idx = headers.get("route_id");
+			int agency_id_idx = headers.get("agency_id");
+			String line;
+			String[] args;
+			while ((line = file.readLine()) != null) {
+				args = splitLine(line);
+				if (args[agency_id_idx].equals(irw_agency_id)) {
+					irw_routes.add(args[route_id_idx]);
+				}
+			}
+		} catch (Exception e) {
+			return null;
+		}
+		return irw_routes;
+	}
+	
+	private class IRWTrips {
+		HashSet<String> irw_services;
+		HashSet<String> irw_trips;
+	}
+	
+	private IRWTrips parseTrips(ZipFile zf, HashSet<String> irw_routes) {
+		IRWTrips result = new IRWTrips();
+		result.irw_services = new HashSet<String>();
+		result.irw_trips = new HashSet<String>();
+		try (BufferedReader ifile = getFile(zf, "trips.txt"); BufferedWriter ofile = setFile(irwFolder, "trips.txt")) {
+			Map<String, Integer> headers = parseGTFSHeaders(ifile, ofile);
+			int route_id_idx = headers.get("route_id");
+			int service_id_idx = headers.get("service_id");
+			int trip_id_idx = headers.get("trip_id");
+			String line;
+			String[] args;
+			while ((line = ifile.readLine()) != null) {
+				args = splitLine(line);
+				if (irw_routes.contains(args[route_id_idx])) {
+					result.irw_services.add(args[service_id_idx]);
+					result.irw_trips.add(args[trip_id_idx]);
+					writeLine(ofile, line);
+				}
+			}
+		} catch (Exception e) {
+			return null;
+		}
+		return result;
+	}
+	
+	private boolean parseCalendar(ZipFile zf, HashSet<String> irw_services) {
+		try (BufferedReader ifile = getFile(zf, "calendar.txt"); BufferedWriter ofile = setFile(irwFolder, "calendar.txt")) {
+			Map<String, Integer> headers = parseGTFSHeaders(ifile, ofile);
+			int service_id_idx = headers.get("service_id");
+			String line;
+			String[] args;
+			while ((line = ifile.readLine()) != null) {
+				args = splitLine(line);
+				if (irw_services.contains(args[service_id_idx])) {
+					writeLine(ofile, line);
+				}
+			}
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+
+	}
+	
+	private HashSet<String> parseStopTimes(ZipFile zf, HashSet<String> irw_trips) {
+		HashSet<String> irw_stops = new HashSet<String>();
+		try (BufferedReader ifile = getFile(zf, "stop_times.txt"); BufferedWriter ofile = setFile(irwFolder, "stop_times.txt")) {
+			Map<String, Integer> headers = parseGTFSHeaders(ifile, ofile);
+			int trip_id_idx = headers.get("trip_id");
+			int stop_id_idx = headers.get("stop_id");
+			String line;
+			String[] args;
+			int i = 0;
+			while ((line = ifile.readLine()) != null) {
+				args = splitLine(line);
+				if (irw_trips.contains(args[trip_id_idx])) {
+					irw_stops.add(args[stop_id_idx]);
+					writeLine(ofile, line);
+				}
+				if (++i % 100000 == 0) {
+					Log.d(NAME, Integer.toString(i));
+				}
+			}
+		} catch (Exception e) {
+			return null;
+		}
+		return irw_stops;
 	}
 
-	private boolean unpackZip(File output_dir, File zipname) {
-		InputStream is;
-		ZipInputStream zis;
-		try {
-			String filename;
-			is = new FileInputStream(zipname);
-			zis = new ZipInputStream(new BufferedInputStream(is));
-			ZipEntry ze;
-			byte[] buffer = new byte[1024];
-			int count;
-
-			while ((ze = zis.getNextEntry()) != null) {
-				filename = ze.getName();
-
-				// Need to create directories if not exists, or
-				// it will generate an Exception...
-				if (ze.isDirectory()) {
-					File fmd = new File(output_dir, filename);
-					fmd.mkdirs();
-					continue;
+	private boolean parseStops(ZipFile zf, HashSet<String> irw_stops) {
+		try (BufferedReader ifile = getFile(zf, "stops.txt"); BufferedWriter ofile = setFile(irwFolder, "stops.txt")) {
+			Map<String, Integer> headers = parseGTFSHeaders(ifile, ofile);
+			int stop_id_idx = headers.get("stop_id");
+			String line;
+			String[] args;
+			while ((line = ifile.readLine()) != null) {
+				args = splitLine(line);
+				if (irw_stops.contains(args[stop_id_idx])) {
+					writeLine(ofile, line);
 				}
-
-				FileOutputStream fout = new FileOutputStream(new File(
-						output_dir, filename));
-
-				while ((count = zis.read(buffer)) != -1) {
-					fout.write(buffer, 0, count);
-				}
-
-				fout.close();
-				zis.closeEntry();
 			}
-
-			zis.close();
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	private boolean unpackZip(File output_dir, File zipname) {
+		try (ZipFile zf = new ZipFile(zipname)) {
+			// agency.txt
+			setStatus("Extracting agency.txt...", android.R.drawable.stat_sys_download, 6, 0, false);
+			String irw_agency_id = parseAgency(zf);
+			if (irw_agency_id == null) {
+				return false;
+			}
+			
+			// routes.txt
+			setStatus("Extracting routes.txt...", android.R.drawable.stat_sys_download, 6, 1, false);
+			HashSet<String> irw_routes = parseRoutes(zf, irw_agency_id);
+			if (irw_routes == null) {
+				return false;
+			}
+			
+			// trips.txt
+			setStatus("Extracting trips.txt...", android.R.drawable.stat_sys_download, 6, 2, false);
+			IRWTrips result = parseTrips(zf, irw_routes);
+			if (result == null) {
+				return false;
+			}
+			HashSet<String> irw_services = result.irw_services;
+			HashSet<String> irw_trips = result.irw_trips;
+			
+			// calendar.txt
+			setStatus("Extracting calendar.txt...", android.R.drawable.stat_sys_download, 6, 3, false);
+			if (!parseCalendar(zf, irw_services)) {
+				return false;
+			}
+			
+			// stop_times.txt
+			setStatus("Extracting stop_times.txt...", android.R.drawable.stat_sys_download, 6, 4, false);
+			HashSet<String> irw_stops = parseStopTimes(zf, irw_trips);
+			if (irw_stops == null) {
+				return false;
+			}
+			
+			// stops.txt
+			setStatus("Extracting stops.txt...", android.R.drawable.stat_sys_download, 6, 5, false);
+			if (!parseStops(zf, irw_stops)) {
+				return false;
+			}
 		} catch (IOException e) {
-			e.printStackTrace();
 			return false;
 		}
 

@@ -13,10 +13,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.Editable;
@@ -63,6 +67,70 @@ public class MainActivity extends Activity {
 		return true;
 	}
 
+	private void checkUserNetworking()
+	{
+		ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo ni = connManager.getActiveNetworkInfo();
+		if (ni == null || !ni.isConnected()) {
+			new AlertDialog.Builder(this)
+				.setTitle("Error")
+				.setMessage("You are not connected to any network. Please connect and try again.")
+				.create()
+				.show();
+		} else if (ni.getType() != ConnectivityManager.TYPE_WIFI) {
+			new AlertDialog.Builder(this)
+				.setTitle("Data Usage Warning")
+				.setMessage("This is a large download; To avoid mobile data costs, it is recommended that you connect to a Wi-Fi network. Download anyway?")
+				.setPositiveButton("Go", new DialogInterface.OnClickListener() {
+	        
+					public void onClick(DialogInterface dialog, int which) {
+			            dialog.dismiss();
+			            downloadDb();
+			        }
+	
+			    })
+			
+			    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			
+			        @Override
+			        public void onClick(DialogInterface dialog, int which) {
+			            // Do nothing
+			            dialog.dismiss();
+			        }
+			    })
+				.create()
+				.show();
+		} else {
+			downloadDb();
+		}
+	}
+	
+	private void getUserConfirmation()
+	{
+		new AlertDialog.Builder(this)
+		.setTitle("Confirm Download")
+		.setMessage("Updating the DB requires downloading over 100MB, and a few minutes of heavy CPU usage. You do not have to leave your screen on during this time.\nAre you ready?")
+		.setPositiveButton("Go", new DialogInterface.OnClickListener() {
+	        
+			public void onClick(DialogInterface dialog, int which) {
+	            dialog.dismiss();
+	            checkUserNetworking();
+	        }
+
+	    })
+	
+	    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+	
+	        @Override
+	        public void onClick(DialogInterface dialog, int which) {
+	            // Do nothing
+	            dialog.dismiss();
+	        }
+	    })
+	    .create()
+	    .show();
+	}
+	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle action bar item clicks here. The action bar will
@@ -75,7 +143,7 @@ public class MainActivity extends Activity {
 			}
 			return true;
 		} else if (id == R.id.action_download) {
-			downloadDb();
+			getUserConfirmation();
 			return true;
 		} else if (id == R.id.action_set_legacy) {
 			classic_mode = !classic_mode;
@@ -285,7 +353,7 @@ public class MainActivity extends Activity {
 
 	private void listStationsWithSearch(String data) {
 		List<String> result = new ArrayList<String>();
-		if (data == "") {
+		if (data.equals("")) {
 			setListViewItems(Utils.allStationsList);
 		} else {
 			for (String station : Utils.allStationsList) {
