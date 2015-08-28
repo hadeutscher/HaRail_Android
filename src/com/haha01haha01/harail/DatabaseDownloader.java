@@ -190,7 +190,7 @@ public class DatabaseDownloader extends IntentService {
 			String[] args;
 			while ((line = file.readLine()) != null) {
 				args = splitLine(line);
-				if (args[agency_name_idx].equals("øëáú éùøàì")) {
+				if (args[agency_name_idx].equals("×¨×›×‘×ª ×™×©×¨××œ")) {
 					return args[agency_id_idx];
 				}
 			}
