@@ -17,6 +17,8 @@ import java.util.GregorianCalendar;
 import java.util.Hashtable;
 import java.util.List;
 
+import android.app.Activity;
+import android.os.Build;
 import android.os.Environment;
 
 public final class Utils {
@@ -30,10 +32,6 @@ public final class Utils {
 	public static Hashtable<Integer, String> stationsById;
 	public static Hashtable<String, Integer> stationsByName;
 
-	static {
-		readStationList();
-	}
-	
 	public static String makeTime(int time) {
 		String hours = padWithZeroes(Integer.toString(time / 3600), 2);
 		time %= 3600;
@@ -105,5 +103,9 @@ public final class Utils {
 			x = "0" + x;
 		}
 		return x;
+	}
+	
+	public static boolean shouldAskPermission() {
+		return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
 	}
 }

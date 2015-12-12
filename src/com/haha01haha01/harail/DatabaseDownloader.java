@@ -26,6 +26,7 @@ import org.apache.commons.net.ftp.FTPClient;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Environment;
@@ -58,10 +59,12 @@ public class DatabaseDownloader extends IntentService {
 	
 	private void setStatus(String message, int icon, int max, int progress, boolean intermediate) {
 		if (builder != null && notifyManager != null) {
+			Context context = getApplicationContext();
 			builder.setContentTitle("HaRail GTFS Database")
 					.setContentText(message)
 					.setSmallIcon(icon)
-					.setProgress(max, progress, intermediate);
+					.setProgress(max, progress, intermediate)
+					.setContentIntent(PendingIntent.getActivity(context, 0, new Intent(context, MainActivity.class), 0));
 			notifyManager.notify(1, builder.build());			
 		}
 	}

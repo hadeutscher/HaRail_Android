@@ -8,10 +8,11 @@ package com.haha01haha01.harail;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.os.Bundle;
 import android.app.ListFragment;
+import android.content.Context;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -155,11 +156,26 @@ public class routeListFragment extends ListFragment {
 					.getInt(STATE_ACTIVATED_POSITION));
 		}
 	}
+	
+	// Android API is shit, we need to use different overrides before and after API23
 
+	@TargetApi(23)
+	@Override
+	public void onAttach(Context context) {
+	super.onAttach(context);
+		if (context instanceof Activity) {
+			handleOnAttach((Activity)context);
+		} 
+	}
+
+	@SuppressWarnings("deprecation")
 	@Override
 	public void onAttach(Activity activity) {
 		super.onAttach(activity);
-
+		handleOnAttach(activity);
+	}
+	
+	private void handleOnAttach(Activity activity) {
 		// Activities containing this fragment must implement its callbacks.
 		if (!(activity instanceof Callbacks)) {
 			throw new IllegalStateException(

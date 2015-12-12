@@ -12,6 +12,8 @@ import java.util.Locale;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
@@ -19,6 +21,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -37,6 +40,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
+	static int READ_REQUEST = 100;
+	static int WRITE_REQUEST = 200;
+	
 	boolean source_searching = false;
 	boolean dest_searching = false;
 	boolean classic_mode = false;
@@ -58,8 +64,72 @@ public class MainActivity extends Activity {
 				new IntentFilter(DatabaseDownloader.FINISHED));
 
 		initializeComponents();
+
+		if (Utils.shouldAskPermission()) {
+			requestReadPermission();
+		} else {
+			Utils.readStationList();
+		}
+	}
+	
+	@TargetApi(23)
+	private void requestReadPermission() {
+		int code = READ_REQUEST;
+		String[] perms = new String[] { Manifest.permission.READ_EXTERNAL_STORAGE };
+		if (this.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+			requestPermissions(perms, code);
+		} else {
+			onRequestPermissionsResult(code, perms, new int[] { PackageManager.PERMISSION_GRANTED });
+		}
+	}
+	
+	@TargetApi(23)
+	private void requestWritePermission() {
+		int code = WRITE_REQUEST;
+		String[] perms =  new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE };
+		if (this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+			requestPermissions(perms, code);
+		} else {
+			onRequestPermissionsResult(code, perms, new int[] { PackageManager.PERMISSION_GRANTED });
+		}
 	}
 
+	 @Override
+	 public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+	     if (requestCode == READ_REQUEST) {
+	    	 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+	    		 Utils.readStationList();
+	    	 } else {
+	    		 final Activity context = this;
+	    		 new AlertDialog.Builder(this)
+		    		 .setTitle("Error")
+		    		 .setMessage("You must allow HaRail to read from the external storage, otherwise it cannot read its DB.")
+		    		 .setPositiveButton("Exit", new DialogInterface.OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+							context.finish();
+						}
+						
+					})
+					.create()
+					.show();
+	    	 }
+	     } else if (requestCode == WRITE_REQUEST) {
+	    	 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+	    		 downloadDb();
+	    	 } else {
+	    		 new AlertDialog.Builder(this)
+	    		 	.setTitle("Error")
+	    		 	.setMessage("You must allow HaRail to write to the external storage in order to download the DB.")
+	    		 	.create()
+	    		 	.show();
+	    	 }
+	     }
+	 }
+
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -83,9 +153,10 @@ public class MainActivity extends Activity {
 				.setMessage("This is a large download; To avoid mobile data costs, it is recommended that you connect to a Wi-Fi network. Download anyway?")
 				.setPositiveButton("Go", new DialogInterface.OnClickListener() {
 	        
+					@Override
 					public void onClick(DialogInterface dialog, int which) {
 			            dialog.dismiss();
-			            downloadDb();
+			            requestPermissionsAndDownloadDb();
 			        }
 	
 			    })
@@ -101,7 +172,7 @@ public class MainActivity extends Activity {
 				.create()
 				.show();
 		} else {
-			downloadDb();
+			requestPermissionsAndDownloadDb();
 		}
 	}
 	
@@ -375,6 +446,14 @@ public class MainActivity extends Activity {
 		lv.setAdapter(station_adapter);
 	}
 
+	public void requestPermissionsAndDownloadDb() {
+		if (Utils.shouldAskPermission()) {
+			requestWritePermission();
+		} else {
+			downloadDb();
+		}
+	}
+	
 	public void downloadDb() {
 		fail("UI disabled while downloading database");
 		Intent mServiceIntent = new Intent(getApplicationContext(),
