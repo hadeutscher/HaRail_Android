@@ -21,6 +21,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -40,8 +42,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-	static int READ_REQUEST = 100;
-	static int WRITE_REQUEST = 200;
+	private static final int READ_REQUEST = 100;
+	private static final int WRITE_REQUEST = 200;
+	private static final String SOURCE_PREF = "com.haha01haha01.harail.MainActivity.curr_source";
+	private static final String DEST_PREF = "com.haha01haha01.harail.MainActivity.curr_dest";
 	
 	boolean source_searching = false;
 	boolean dest_searching = false;
@@ -56,20 +60,24 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		// Boilerplate init stuff
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
+		// Register a listener for download DB completion
 		LocalBroadcastManager.getInstance(this).registerReceiver(
 				new DownloadCompleteCallback(),
 				new IntentFilter(DatabaseDownloader.FINISHED));
 
-		initializeComponents();
-
+		// Read the stations list BEFORE we initialize
 		if (Utils.shouldAskPermission()) {
 			requestReadPermission();
 		} else {
 			Utils.readStationList();
 		}
+		
+		// Init the environment
+		initializeComponents();
 	}
 	
 	@TargetApi(23)
@@ -210,7 +218,7 @@ public class MainActivity extends Activity {
 		int id = item.getItemId();
 		if (id == R.id.action_reset) {
 			if (!isFailed()) {
-				resetEnvironment();
+				resetEnvironment(true);
 			}
 			return true;
 		} else if (id == R.id.action_download) {
@@ -254,7 +262,7 @@ public class MainActivity extends Activity {
 		ListView lv = (ListView) findViewById(R.id.stationsList);
 		lv.setOnItemClickListener(new SearchListItemClickedCallback());
 
-		resetEnvironment();
+		resetEnvironment(false);
 	}
 
 	// Callbacks
@@ -295,11 +303,13 @@ public class MainActivity extends Activity {
 			int station = Utils.stationsByName.get(item);
 			if (source_searching) {
 				curr_source = station;
-				((MirageEditText)findViewById(R.id.searchSourceStation)).setMirageText(item);
+				updateSourceBox();
+				updateSourcePref();
 				findViewById(R.id.searchDestStation).requestFocus();
 			} else if (dest_searching) {
 				curr_dest = station;
-				((MirageEditText)findViewById(R.id.searchDestStation)).setMirageText(item);
+				updateDestBox();
+				updateDestPref();
 				findViewById(R.id.timeInput).requestFocus();
 			} else {
 				return;
@@ -366,6 +376,15 @@ public class MainActivity extends Activity {
 		}
 	    startActivity(intent);
 	}
+	
+	public void swapSourceDest(View view) {
+		int temp = curr_source;
+		curr_source = curr_dest;
+		curr_dest = temp;
+		updateSourceBox();
+		updateDestBox();
+		updateSourceDestPrefs();
+	}
 
 	// UI Helper Methods
 
@@ -387,30 +406,71 @@ public class MainActivity extends Activity {
 		return findViewById(R.id.mainContainer).getVisibility() == View.GONE;
 	}
 
-	private void resetEnvironment() {
+	private void updateSourceBox() {
+		((MirageEditText)findViewById(R.id.searchSourceStation)).setMirageText(Utils.stationsById.containsKey(curr_source) ? Utils.stationsById.get(curr_source) : "Source");
+	}
+	
+	private void updateSourcePref() {
+		getPreferences(MODE_PRIVATE).edit()
+			.putInt(SOURCE_PREF, curr_source)
+			.apply();
+	}
+	
+	private void updateDestBox() {
+		((MirageEditText)findViewById(R.id.searchDestStation)).setMirageText(Utils.stationsById.containsKey(curr_dest) ? Utils.stationsById.get(curr_dest) : "Dest");
+	}
+	
+	private void updateDestPref() {
+		getPreferences(MODE_PRIVATE).edit()
+			.putInt(DEST_PREF, curr_dest)
+			.apply();
+	}
+	
+	private void updateSourceDestPrefs() {
+		getPreferences(MODE_PRIVATE).edit()
+			.putInt(SOURCE_PREF, curr_source)
+			.putInt(DEST_PREF, curr_dest)
+			.apply();
+	}
+	
+	private void resetEnvironment(boolean full) {
 		((TextView) findViewById(R.id.timeInput)).setText(Utils
 				.getCurrentTimeString());
 		((TextView) findViewById(R.id.dateInput)).setText(Utils
 				.getCurrentDateString());
 
+		SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+		if (full) {
+			curr_source = -1;
+			curr_dest = -1;
+			updateSourceDestPrefs();
+		} else {
+			curr_source = prefs.getInt(SOURCE_PREF, -1);
+			curr_dest = prefs.getInt(DEST_PREF, -1);
+		}
 		
-		((MirageEditText)findViewById(R.id.searchSourceStation)).setRealText("");
-		((MirageEditText)findViewById(R.id.searchDestStation)).setRealText("");
-		((MirageEditText)findViewById(R.id.searchSourceStation)).setMirageText("Source");
-		((MirageEditText)findViewById(R.id.searchDestStation)).setMirageText("Dest");
-		((MirageEditText)findViewById(R.id.searchSourceStation)).requestFocus();
+		MirageEditText sourceBox = ((MirageEditText)findViewById(R.id.searchSourceStation));
+		MirageEditText destBox = ((MirageEditText)findViewById(R.id.searchDestStation));
 		
-		listStationsWithSearch("");
-
-		curr_source = -1;
-		curr_dest = -1;
-		((Button) findViewById(R.id.mainButton)).setEnabled(false);
+		sourceBox.setRealText("");
+		destBox.setRealText("");
+		updateSourceBox();
+		updateDestBox();
+		
+		if (sourceBox.hasFocus()) {
+			onSearchBoxFocusChange(sourceBox, true);
+		} else if (destBox.hasFocus()) {
+			onSearchBoxFocusChange(destBox, true);
+		} else {
+			onSearchBoxFocusChange(null, false);
+		}
+		
+		findViewById(R.id.mainButton).setEnabled(curr_source != -1 && curr_dest != -1);
 	}
 
 	public void updateRoute() {
 		if (curr_source != -1 && curr_dest != -1) {
-			Button b = (Button) findViewById(R.id.mainButton);
-			b.setEnabled(true);
+			findViewById(R.id.mainButton).setEnabled(true);
 		}
 	}
 

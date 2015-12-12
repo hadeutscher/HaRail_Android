@@ -17,7 +17,6 @@ import java.util.GregorianCalendar;
 import java.util.Hashtable;
 import java.util.List;
 
-import android.app.Activity;
 import android.os.Build;
 import android.os.Environment;
 
