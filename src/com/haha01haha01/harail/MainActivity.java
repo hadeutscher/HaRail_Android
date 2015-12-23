@@ -12,11 +12,20 @@ import java.util.Locale;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.Editable;
@@ -33,6 +42,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
+	private static final int READ_REQUEST = 100;
+	private static final int WRITE_REQUEST = 200;
+	private static final String SOURCE_PREF = "com.haha01haha01.harail.MainActivity.curr_source";
+	private static final String DEST_PREF = "com.haha01haha01.harail.MainActivity.curr_dest";
+	
 	boolean source_searching = false;
 	boolean dest_searching = false;
 	boolean classic_mode = false;
@@ -46,16 +60,84 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		// Boilerplate init stuff
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
+		// Register a listener for download DB completion
 		LocalBroadcastManager.getInstance(this).registerReceiver(
 				new DownloadCompleteCallback(),
 				new IntentFilter(DatabaseDownloader.FINISHED));
 
+		// Read the stations list BEFORE we initialize
+		if (Utils.shouldAskPermission()) {
+			requestReadPermission();
+		} else {
+			Utils.readStationList();
+		}
+		
+		// Init the environment
 		initializeComponents();
 	}
+	
+	@TargetApi(23)
+	private void requestReadPermission() {
+		int code = READ_REQUEST;
+		String[] perms = new String[] { Manifest.permission.READ_EXTERNAL_STORAGE };
+		if (this.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+			requestPermissions(perms, code);
+		} else {
+			onRequestPermissionsResult(code, perms, new int[] { PackageManager.PERMISSION_GRANTED });
+		}
+	}
+	
+	@TargetApi(23)
+	private void requestWritePermission() {
+		int code = WRITE_REQUEST;
+		String[] perms =  new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE };
+		if (this.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+			requestPermissions(perms, code);
+		} else {
+			onRequestPermissionsResult(code, perms, new int[] { PackageManager.PERMISSION_GRANTED });
+		}
+	}
 
+	 @Override
+	 public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+	     if (requestCode == READ_REQUEST) {
+	    	 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+	    		 Utils.readStationList();
+	    	 } else {
+	    		 final Activity context = this;
+	    		 new AlertDialog.Builder(this)
+		    		 .setTitle("Error")
+		    		 .setMessage("You must allow HaRail to read from the external storage, otherwise it cannot read its DB.")
+		    		 .setPositiveButton("Exit", new DialogInterface.OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+							context.finish();
+						}
+						
+					})
+					.create()
+					.show();
+	    	 }
+	     } else if (requestCode == WRITE_REQUEST) {
+	    	 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+	    		 downloadDb();
+	    	 } else {
+	    		 new AlertDialog.Builder(this)
+	    		 	.setTitle("Error")
+	    		 	.setMessage("You must allow HaRail to write to the external storage in order to download the DB.")
+	    		 	.create()
+	    		 	.show();
+	    	 }
+	     }
+	 }
+
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -63,6 +145,71 @@ public class MainActivity extends Activity {
 		return true;
 	}
 
+	private void checkUserNetworking()
+	{
+		ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo ni = connManager.getActiveNetworkInfo();
+		if (ni == null || !ni.isConnected()) {
+			new AlertDialog.Builder(this)
+				.setTitle("Error")
+				.setMessage("You are not connected to any network. Please connect and try again.")
+				.create()
+				.show();
+		} else if (ni.getType() != ConnectivityManager.TYPE_WIFI) {
+			new AlertDialog.Builder(this)
+				.setTitle("Data Usage Warning")
+				.setMessage("This is a large download; To avoid mobile data costs, it is recommended that you connect to a Wi-Fi network. Download anyway?")
+				.setPositiveButton("Go", new DialogInterface.OnClickListener() {
+	        
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+			            dialog.dismiss();
+			            requestPermissionsAndDownloadDb();
+			        }
+	
+			    })
+			
+			    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			
+			        @Override
+			        public void onClick(DialogInterface dialog, int which) {
+			            // Do nothing
+			            dialog.dismiss();
+			        }
+			    })
+				.create()
+				.show();
+		} else {
+			requestPermissionsAndDownloadDb();
+		}
+	}
+	
+	private void getUserConfirmation()
+	{
+		new AlertDialog.Builder(this)
+		.setTitle("Confirm Download")
+		.setMessage("Updating the DB requires downloading over 100MB, and a few minutes of heavy CPU usage. You do not have to leave your screen on during this time.\nAre you ready?")
+		.setPositiveButton("Go", new DialogInterface.OnClickListener() {
+	        
+			public void onClick(DialogInterface dialog, int which) {
+	            dialog.dismiss();
+	            checkUserNetworking();
+	        }
+
+	    })
+	
+	    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+	
+	        @Override
+	        public void onClick(DialogInterface dialog, int which) {
+	            // Do nothing
+	            dialog.dismiss();
+	        }
+	    })
+	    .create()
+	    .show();
+	}
+	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle action bar item clicks here. The action bar will
@@ -71,11 +218,11 @@ public class MainActivity extends Activity {
 		int id = item.getItemId();
 		if (id == R.id.action_reset) {
 			if (!isFailed()) {
-				resetEnvironment();
+				resetEnvironment(true);
 			}
 			return true;
 		} else if (id == R.id.action_download) {
-			downloadDb();
+			getUserConfirmation();
 			return true;
 		} else if (id == R.id.action_set_legacy) {
 			classic_mode = !classic_mode;
@@ -115,7 +262,7 @@ public class MainActivity extends Activity {
 		ListView lv = (ListView) findViewById(R.id.stationsList);
 		lv.setOnItemClickListener(new SearchListItemClickedCallback());
 
-		resetEnvironment();
+		resetEnvironment(false);
 	}
 
 	// Callbacks
@@ -156,11 +303,13 @@ public class MainActivity extends Activity {
 			int station = Utils.stationsByName.get(item);
 			if (source_searching) {
 				curr_source = station;
-				((MirageEditText)findViewById(R.id.searchSourceStation)).setMirageText(item);
+				updateSourceBox();
+				updateSourcePref();
 				findViewById(R.id.searchDestStation).requestFocus();
 			} else if (dest_searching) {
 				curr_dest = station;
-				((MirageEditText)findViewById(R.id.searchDestStation)).setMirageText(item);
+				updateDestBox();
+				updateDestPref();
 				findViewById(R.id.timeInput).requestFocus();
 			} else {
 				return;
@@ -227,6 +376,15 @@ public class MainActivity extends Activity {
 		}
 	    startActivity(intent);
 	}
+	
+	public void swapSourceDest(View view) {
+		int temp = curr_source;
+		curr_source = curr_dest;
+		curr_dest = temp;
+		updateSourceBox();
+		updateDestBox();
+		updateSourceDestPrefs();
+	}
 
 	// UI Helper Methods
 
@@ -248,30 +406,71 @@ public class MainActivity extends Activity {
 		return findViewById(R.id.mainContainer).getVisibility() == View.GONE;
 	}
 
-	private void resetEnvironment() {
+	private void updateSourceBox() {
+		((MirageEditText)findViewById(R.id.searchSourceStation)).setMirageText(Utils.stationsById.containsKey(curr_source) ? Utils.stationsById.get(curr_source) : "Source");
+	}
+	
+	private void updateSourcePref() {
+		getPreferences(MODE_PRIVATE).edit()
+			.putInt(SOURCE_PREF, curr_source)
+			.apply();
+	}
+	
+	private void updateDestBox() {
+		((MirageEditText)findViewById(R.id.searchDestStation)).setMirageText(Utils.stationsById.containsKey(curr_dest) ? Utils.stationsById.get(curr_dest) : "Dest");
+	}
+	
+	private void updateDestPref() {
+		getPreferences(MODE_PRIVATE).edit()
+			.putInt(DEST_PREF, curr_dest)
+			.apply();
+	}
+	
+	private void updateSourceDestPrefs() {
+		getPreferences(MODE_PRIVATE).edit()
+			.putInt(SOURCE_PREF, curr_source)
+			.putInt(DEST_PREF, curr_dest)
+			.apply();
+	}
+	
+	private void resetEnvironment(boolean full) {
 		((TextView) findViewById(R.id.timeInput)).setText(Utils
 				.getCurrentTimeString());
 		((TextView) findViewById(R.id.dateInput)).setText(Utils
 				.getCurrentDateString());
 
+		SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+		if (full) {
+			curr_source = -1;
+			curr_dest = -1;
+			updateSourceDestPrefs();
+		} else {
+			curr_source = prefs.getInt(SOURCE_PREF, -1);
+			curr_dest = prefs.getInt(DEST_PREF, -1);
+		}
 		
-		((MirageEditText)findViewById(R.id.searchSourceStation)).setRealText("");
-		((MirageEditText)findViewById(R.id.searchDestStation)).setRealText("");
-		((MirageEditText)findViewById(R.id.searchSourceStation)).setMirageText("Source");
-		((MirageEditText)findViewById(R.id.searchDestStation)).setMirageText("Dest");
-		((MirageEditText)findViewById(R.id.searchSourceStation)).requestFocus();
+		MirageEditText sourceBox = ((MirageEditText)findViewById(R.id.searchSourceStation));
+		MirageEditText destBox = ((MirageEditText)findViewById(R.id.searchDestStation));
 		
-		listStationsWithSearch("");
-
-		curr_source = -1;
-		curr_dest = -1;
-		((Button) findViewById(R.id.mainButton)).setEnabled(false);
+		sourceBox.setRealText("");
+		destBox.setRealText("");
+		updateSourceBox();
+		updateDestBox();
+		
+		if (sourceBox.hasFocus()) {
+			onSearchBoxFocusChange(sourceBox, true);
+		} else if (destBox.hasFocus()) {
+			onSearchBoxFocusChange(destBox, true);
+		} else {
+			onSearchBoxFocusChange(null, false);
+		}
+		
+		findViewById(R.id.mainButton).setEnabled(curr_source != -1 && curr_dest != -1);
 	}
 
 	public void updateRoute() {
 		if (curr_source != -1 && curr_dest != -1) {
-			Button b = (Button) findViewById(R.id.mainButton);
-			b.setEnabled(true);
+			findViewById(R.id.mainButton).setEnabled(true);
 		}
 	}
 
@@ -285,7 +484,7 @@ public class MainActivity extends Activity {
 
 	private void listStationsWithSearch(String data) {
 		List<String> result = new ArrayList<String>();
-		if (data == "") {
+		if (data.equals("")) {
 			setListViewItems(Utils.allStationsList);
 		} else {
 			for (String station : Utils.allStationsList) {
@@ -307,6 +506,14 @@ public class MainActivity extends Activity {
 		lv.setAdapter(station_adapter);
 	}
 
+	public void requestPermissionsAndDownloadDb() {
+		if (Utils.shouldAskPermission()) {
+			requestWritePermission();
+		} else {
+			downloadDb();
+		}
+	}
+	
 	public void downloadDb() {
 		fail("UI disabled while downloading database");
 		Intent mServiceIntent = new Intent(getApplicationContext(),
