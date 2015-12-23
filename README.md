@@ -18,3 +18,7 @@ You must supply the following 2 dependencies:
 <img alt="Get it on F-Droid"
        src="https://cloud.githubusercontent.com/assets/12447257/8024903/ce8dca32-0d44-11e5-95b0-e97d1d027351.png" />
 </a> 
+<a href="https://play.google.com/store/apps/details?id=com.haha01haha01.harail">
+<img alt="Get it on Google Play"
+       src="https://cloud.githubusercontent.com/assets/16354543/11904684/0667026e-a5c2-11e5-9f53-4614cc53e01f.png" />
+</a> 
