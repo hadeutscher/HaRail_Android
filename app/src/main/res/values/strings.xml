@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">HaRail</string>
+    <string name="action_reset">Reset</string>
+    <string name="button_text">Go</string>
+    <string name="time_label_text">Time:</string>
+    <string name="date_label_text">Date:</string>
+    <string name="download_db">Download DB</string>
+    <string name="source_query">Source</string>
+    <string name="dest_query">Dest</string>
+    <string name="title_activity_display_route">DisplayRouteActivity</string>
+    <string name="title_route_list">Trains</string>
+    <string name="title_route_detail">route Detail</string>
+    <string name="classic_menu_item">Classic Mode</string>
+    <string name="button_swap_text">&lt;-></string>
+
+</resources>

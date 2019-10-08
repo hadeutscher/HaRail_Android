@@ -1,5 +1,0 @@
-<resources>
-   <declare-styleable name="MirageEditText">
-       <attr name="mirageText" format="string" />
-   </declare-styleable>
-</resources>
