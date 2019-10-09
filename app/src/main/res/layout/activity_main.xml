@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.haha01haha01.harail.MainActivity"
-    xmlns:app="http://schemas.android.com/apk/res/com.haha01haha01.harail"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:focusable="true"
     android:focusableInTouchMode="true">
 
@@ -55,7 +55,8 @@
             android:layout_width="fill_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:clickable="true" >
+            android:clickable="true"
+            android:focusable="true" >
 
         </ListView>
 

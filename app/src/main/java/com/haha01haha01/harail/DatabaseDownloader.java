@@ -43,7 +43,9 @@ public class DatabaseDownloader extends IntentService {
 	// Constants
 	public static final String FINISHED = "com.haha01haha01.harail.DatabaseDownloader.FINISHED";
 	public static final String EXTENDED_SUCCESS = "com.haha01haha01.harail.DatabaseDownloader.EXTENDED_SUCCESS";
-	private static final String NAME = "HARAIL_DATABASE_DOWNLOADER";
+	private static final String INTENT_NAME = "HARAIL_DATABASE_DOWNLOADER";
+	private static final String WAKELOCK_NAME = "harail:database_downloader";
+	private static final String LOGTAG = "harail_db_dl";
 	private static final String irw_gtfs_server = "gtfs.mot.gov.il";
 	private static final int irw_gtfs_port = 21;
 	private static final String irw_gtfs_filename = "israel-public-transportation.zip";
@@ -59,7 +61,7 @@ public class DatabaseDownloader extends IntentService {
 	private Pattern splitter = Pattern.compile(",");
 	
 	public DatabaseDownloader() {
-		super(NAME);
+		super(INTENT_NAME);
 	}
 	
 	private void setStatus(String message, int icon, int max, int progress, boolean intermediate) {
@@ -81,7 +83,7 @@ public class DatabaseDownloader extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent workIntent) {
 		PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-		WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, NAME);
+		WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_NAME);
 		notifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 		builder = new Notification.Builder(this);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -91,7 +93,7 @@ public class DatabaseDownloader extends IntentService {
 					NotificationManager.IMPORTANCE_DEFAULT);
 			notifyManager.createNotificationChannel(channel);
 		}
-		wakeLock.acquire();
+		wakeLock.acquire(10 * 60 * 1000);
 		try {
 			setStatus("Downloading...", android.R.drawable.stat_sys_download, 0, 0, true);
 			boolean success = downloadFile(irw_gtfs_server, irw_gtfs_port, "anonymous", "", irw_gtfs_filename, zipFileLocal);
@@ -121,15 +123,15 @@ public class DatabaseDownloader extends IntentService {
 			ftp = new FTPClient();
 			ftp.setBufferSize(1024 * 1024);
 			ftp.connect(server, portNumber);
-			Log.d(NAME, "Connected. Reply: " + ftp.getReplyString());
+			Log.d(LOGTAG, "Connected. Reply: " + ftp.getReplyString());
 			if (!ftp.login(user, password)) {
 				return false;
 			}
-			Log.d(NAME, "Logged in");
+			Log.d(LOGTAG, "Logged in");
 			if (!ftp.setFileType(FTP.BINARY_FILE_TYPE)) {
 				return false;
 			}
-			Log.d(NAME, "Downloading");
+			Log.d(LOGTAG, "Downloading");
 			ftp.enterLocalPassiveMode();
 			
 			try (BufferedOutputStream outputStream = new BufferedOutputStream(
@@ -303,7 +305,7 @@ public class DatabaseDownloader extends IntentService {
 					writeLine(ofile, line);
 				}
 				if (++i % 100000 == 0) {
-					Log.d(NAME, Integer.toString(i));
+					Log.d(LOGTAG, Integer.toString(i));
 				}
 			}
 		} catch (Exception e) {
