@@ -7,7 +7,6 @@ android {
     defaultConfig {
         applicationId "com.haha01haha01.harail"
         minSdkVersion 19
-        targetSdkVersion 28
 
         ndk {
             moduleName "HaRail"
@@ -30,5 +29,5 @@ android {
 dependencies {
     implementation files('libs/commons-net-3.6.jar')
     implementation 'com.android.support:localbroadcastmanager:28.0.0'
-    implementation files('libs\\commons-io-2.6.jar')
+    implementation files('libs/commons-io-2.6.jar')
 }

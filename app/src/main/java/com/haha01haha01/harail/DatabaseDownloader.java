@@ -94,7 +94,7 @@ public class DatabaseDownloader extends IntentService {
 		wakeLock.acquire();
 		try {
 			setStatus("Downloading...", android.R.drawable.stat_sys_download, 0, 0, true);
-			boolean success = true; //downloadFile(irw_gtfs_server, irw_gtfs_port, "anonymous", "", irw_gtfs_filename, zipFileLocal);
+			boolean success = downloadFile(irw_gtfs_server, irw_gtfs_port, "anonymous", "", irw_gtfs_filename, zipFileLocal);
 			if (!success) {
 				setStatus("Download Failed", android.R.drawable.ic_dialog_alert, 0, 0, false);
 				sendFinished(false);
