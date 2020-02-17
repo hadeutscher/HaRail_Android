@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
     buildToolsVersion "29.0.2"
 
     defaultConfig {
@@ -11,6 +11,7 @@ android {
         ndk {
             moduleName "HaRail"
         }
+        targetSdkVersion 29
     }
 
     buildTypes {
@@ -27,7 +28,7 @@ android {
 }
 
 dependencies {
-    implementation files('libs/commons-net-3.6.jar')
+    implementation 'commons-net:commons-net:3.6'
     implementation 'com.android.support:localbroadcastmanager:28.0.0'
-    implementation files('libs/commons-io-2.6.jar')
+    implementation 'commons-io:commons-io:2.6'
 }
