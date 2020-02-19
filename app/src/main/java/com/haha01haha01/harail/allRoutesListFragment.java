@@ -95,9 +95,9 @@ public class allRoutesListFragment extends ListFragment {
 	}
 
 	private String makeRoute(int source_time, int dest_time, int train_count) {
-		return "(" + Utils.makeTime(source_time) + ") -> "
-				+ "(" + Utils.makeTime(dest_time) + ")"
-				+ ((train_count > 1) ? (" (+" + (train_count - 1) + ")") : "");
+		return Utils.makeTime(source_time) + " -> " + Utils.makeTime(dest_time)
+				+ " (" + Utils.makeTime(dest_time - source_time) + ")"
+				+ ((train_count > 0) ? (" (+" + train_count + ")") : "");
 	}
 
 	private int appendRouteToList(int i) {

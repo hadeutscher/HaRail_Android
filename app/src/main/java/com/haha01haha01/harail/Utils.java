@@ -19,6 +19,7 @@ import java.util.List;
 
 import android.os.Build;
 import android.os.Environment;
+import android.widget.Toast;
 
 public final class Utils {
 	public static final String data_root = new File(
@@ -55,33 +56,28 @@ public final class Utils {
 		throw new NoSuchFieldException();
 	}
 	
-	public static void readStationList() {
+	public static void readStationList() throws FileNotFoundException, IOException, NoSuchFieldException {
 		stationsInitialized = false;
 		allStationsList = new ArrayList<String>();
 		stationsById = new Hashtable<Integer, String>();
 		stationsByName = new Hashtable<String, Integer>();
-		try {
-			File file = new File(data_root, "stops.txt");
-			BufferedReader br;
-			br = new BufferedReader(new FileReader(file));
-			String line;
-			String[] headers = br.readLine().split(",");
-			int stat_id_idx = getHeaderIndex(headers, "stop_id");
-			int stat_name_idx = getHeaderIndex(headers, "stop_name");
-			while ((line = br.readLine()) != null) {
-				String[] params = line.split(",");
-				int stat_id = Integer.parseInt(params[stat_id_idx]);
-				String stat_name = params[stat_name_idx];
-				stationsByName.put(stat_name, stat_id);
-				stationsById.put(stat_id, stat_name);
-				allStationsList.add(stat_name);
-			}
-			br.close();
-			stationsInitialized = true;
-		} catch (FileNotFoundException ex) {
-		} catch (IOException ex) {
-		} catch (NoSuchFieldException ex) {
+		File file = new File(data_root, "stops.txt");
+		BufferedReader br;
+		br = new BufferedReader(new FileReader(file));
+		String line;
+		String[] headers = br.readLine().split(",");
+		int stat_id_idx = getHeaderIndex(headers, "stop_id");
+		int stat_name_idx = getHeaderIndex(headers, "stop_name");
+		while ((line = br.readLine()) != null) {
+			String[] params = line.split(",");
+			int stat_id = Integer.parseInt(params[stat_id_idx]);
+			String stat_name = params[stat_name_idx];
+			stationsByName.put(stat_name, stat_id);
+			stationsById.put(stat_id, stat_name);
+			allStationsList.add(stat_name);
 		}
+		br.close();
+		stationsInitialized = true;
 	}
 
 	public static String getCurrentTimeString() {

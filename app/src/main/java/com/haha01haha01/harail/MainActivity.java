@@ -6,6 +6,8 @@
 
 package com.haha01haha01.harail;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -73,7 +75,7 @@ public class MainActivity extends Activity {
 		if (Utils.shouldAskPermission()) {
 			requestReadPermission();
 		} else {
-			Utils.readStationList();
+			readStationList();
 		}
 		
 		// Init the environment
@@ -106,7 +108,7 @@ public class MainActivity extends Activity {
 	 public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
 	     if (requestCode == READ_REQUEST) {
 	    	 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-	    		 Utils.readStationList();
+	    		 readStationList();
 	    	 } else {
 	    		 final Activity context = this;
 	    		 new AlertDialog.Builder(this)
@@ -321,7 +323,7 @@ public class MainActivity extends Activity {
 	class DownloadCompleteCallback extends BroadcastReceiver {
 		@Override
 		public void onReceive(Context ctxt, Intent intent) {
-			if (intent.getAction() != DatabaseDownloader.FINISHED) {
+			if (!intent.getAction().equals(DatabaseDownloader.FINISHED)) {
 				return;
 			}
 			if (!intent.getBooleanExtra(DatabaseDownloader.EXTENDED_SUCCESS,
@@ -331,8 +333,20 @@ public class MainActivity extends Activity {
 						Toast.LENGTH_LONG).show();
 			}
 			unfail();
-			Utils.readStationList();
+			readStationList();
 			initializeComponents();
+		}
+	}
+
+	private void readStationList() {
+		try {
+			Utils.readStationList();
+		} catch (FileNotFoundException ex) {
+			Toast.makeText(getApplicationContext(), "File not found: " + ex.toString(), Toast.LENGTH_LONG).show();
+		} catch (IOException ex) {
+			Toast.makeText(getApplicationContext(), "IO error: " + ex.toString(), Toast.LENGTH_LONG).show();
+		} catch (NoSuchFieldException ex) {
+			Toast.makeText(getApplicationContext(), "No such field: " + ex.toString(), Toast.LENGTH_LONG).show();
 		}
 	}
 
