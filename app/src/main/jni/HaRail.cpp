@@ -47,6 +47,14 @@ extern "C" jstring Java_com_haha01haha01_harail_HaRailAPI_getLastError(
 	return c2jString(HaRail::HaRailAPI::getLastError(), env);
 }
 
+extern "C" jintArray Java_com_haha01haha01_harail_HaRailAPI_getAllFollowingRoutes(
+        JNIEnv *env, jobject thiz, jint start_time, jint start_station_id,
+        jint dest_station_id) {
+    return c2jIntArray(
+            HaRail::HaRailAPI::getAllFollowingRoutes(start_time, start_station_id,
+                    dest_station_id), env);
+}
+
 extern "C" jintArray Java_com_haha01haha01_harail_HaRailAPI_getRoutes(
 		JNIEnv *env, jobject thiz, jint start_time, jint start_station_id,
 		jint dest_station_id) {

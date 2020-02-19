@@ -12,6 +12,9 @@ public final class HaRailAPI {
 
 	public static native String getLastError();
 
+	public static native int[] getAllFollowingRoutes(int start_time, int start_station_id,
+													 int dest_station_id);
+
 	public static native int[] getRoutes(int start_time, int start_station_id,
 			int dest_station_id);
 
