@@ -10,6 +10,7 @@
     <string name="source_query">Source</string>
     <string name="dest_query">Dest</string>
     <string name="title_activity_display_route">DisplayRouteActivity</string>
+    <string name="title_all_routes_list">All Routes</string>
     <string name="title_route_list">Trains</string>
     <string name="title_route_detail">route Detail</string>
     <string name="classic_menu_item">Classic Mode</string>

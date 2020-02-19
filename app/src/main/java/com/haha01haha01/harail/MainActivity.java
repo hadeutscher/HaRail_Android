@@ -358,22 +358,16 @@ public class MainActivity extends Activity {
 			Toast.makeText(getApplicationContext(), HaRailAPI.getLastError(), Toast.LENGTH_LONG).show();
 			return;
 		}
-		
-		Intent intent;
-		
-		if (classic_mode) {
-			String result = HaRailAPI.getRoutesStr(time, curr_source, curr_dest);	
-			intent = new Intent(this, DisplayRouteActivity.class);
-			intent.putExtra(DisplayRouteActivity.EXTRA_DATA, result);
-		} else {
-			int[] result = HaRailAPI.getRoutes(time, curr_source, curr_dest);
-			if (result[0] == 0) {
-				Toast.makeText(getApplicationContext(), HaRailAPI.getLastError(), Toast.LENGTH_LONG).show();
-				return;
-			}
-			intent = new Intent(this, routeListActivity.class);
-		    intent.putExtra(routeListActivity.EXTRA_DATA, result);
+
+		int[] result = HaRailAPI.getAllFollowingRoutes(time, curr_source, curr_dest);
+		if (result[0] == 0) {
+			Toast.makeText(getApplicationContext(), HaRailAPI.getLastError(), Toast.LENGTH_LONG).show();
+			return;
 		}
+		Intent intent = new Intent(this, allRoutesListActivity.class);
+		intent.putExtra(allRoutesListActivity.SOURCE_STATION, curr_source)
+			  .putExtra(allRoutesListActivity.DEST_STATION, curr_dest)
+			  .putExtra(allRoutesListActivity.EXTRA_DATA, result);
 	    startActivity(intent);
 	}
 	

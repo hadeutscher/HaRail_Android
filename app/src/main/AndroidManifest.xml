@@ -39,12 +39,20 @@
                 android:value="com.haha01haha01.harail.MainActivity" />
         </activity>
         <activity
-            android:name=".routeListActivity"
-            android:label="@string/title_route_list"
+            android:name=".allRoutesListActivity"
+            android:label="@string/title_all_routes_list"
             android:parentActivityName=".MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.haha01haha01.harail.MainActivity" />
+        </activity>
+        <activity
+            android:name=".routeListActivity"
+            android:label="@string/title_route_list"
+            android:parentActivityName=".allRoutesListActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.haha01haha01.harail.allRoutesListActivity" />
         </activity>
         <activity
             android:name=".routeDetailActivity"
