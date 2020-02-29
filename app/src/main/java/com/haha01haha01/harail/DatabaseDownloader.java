@@ -168,7 +168,7 @@ public class DatabaseDownloader extends IntentService {
 		return unpackZip(irwFolder, zipFileLocal);
 	}
 	
-	private BufferedReader getFile(ZipFile zf, String name) throws IOException {
+	private static BufferedReader getFile(ZipFile zf, String name) throws IOException {
 		return new BufferedReader(new InputStreamReader(new BOMInputStream(zf.getInputStream(zf.getEntry(name))), StandardCharsets.UTF_8));
 	}
 	
