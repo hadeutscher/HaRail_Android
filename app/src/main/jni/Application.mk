@@ -1,5 +1,5 @@
 APP_ABI := all
-APP_PLATFORM := android-28
+APP_PLATFORM := android-29
 
 APP_CPPFLAGS += -std=c++11 -fexceptions
 
